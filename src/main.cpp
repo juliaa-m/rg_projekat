@@ -51,6 +51,14 @@ struct PointLight {
     float quadratic;
 };
 
+struct DirLight{
+    glm::vec3 direction;
+
+    glm::vec3 ambient;
+    glm::vec3 diffuse;
+    glm::vec3 specular;
+};
+
 struct ProgramState {
     glm::vec3 clearColor = glm::vec3(0);
     bool ImGuiEnabled = false;
@@ -97,6 +105,9 @@ void ProgramState::LoadFromFile(std::string filename) {
     }
 }
 
+bool blinn = false;
+bool blinnKeyPressed = false;
+
 ProgramState *programState;
 
 void DrawImGui(ProgramState *programState);
@@ -136,8 +147,7 @@ int main() {
         return -1;
     }
 
-    // tell stb_image.h to flip loaded texture's on the y-axis (before loading model).
-    stbi_set_flip_vertically_on_load(true);
+
 
     programState = new ProgramState;
     programState->LoadFromFile("resources/program_state.txt");
@@ -165,52 +175,29 @@ int main() {
 
     // load models
     // -----------
-    //Model ourModel("resources/objects/xayah/SubTool-0-15142954.obj");
+    Model deadpool("resources/objects/deadpool/scene.gltf");
+    deadpool.SetShaderTextureNamePrefix("material.");
 
-    std::vector<std::string> objFiles = {
-            "resources/objects/xayah/SubTool-0-15142954.obj",
-            "resources/objects/xayah/SubTool-1-380449.OBJ",
-            "resources/objects/xayah/SubTool-2-5430089.OBJ",
-            "resources/objects/xayah/SubTool-3-5430089.OBJ",
-            "resources/objects/xayah/SubTool-4-273746.OBJ",
-            "resources/objects/xayah/SubTool-5-7785203.OBJ",
-            "resources/objects/xayah/SubTool-6-7785203.OBJ",
-            "resources/objects/xayah/SubTool-7-7785203.OBJ",
-            "resources/objects/xayah/SubTool-8-7579540.OBJ",
-            "resources/objects/xayah/SubTool-9-4593469.OBJ",
-            "resources/objects/xayah/SubTool-10-7785203.OBJ",
-            "resources/objects/xayah/SubTool-11-14905017.OBJ",
-            "resources/objects/xayah/SubTool-12-11389766.OBJ",
-            "resources/objects/xayah/SubTool-13-5430089.OBJ",
-            "resources/objects/xayah/SubTool-14-380449.OBJ"
-    };
+    Model bot("resources/objects/jinx/scene.gltf");
+    bot.SetShaderTextureNamePrefix("material.");
 
-    Model ourModel(objFiles[0]);
-
-    // Load and merge the rest of the .obj files into ourModel
-    for (size_t i = 1; i < objFiles.size(); ++i) {
-        // Create a temporary Model object for each objFile
-        Model tempModel(objFiles[i]);
-
-        // Merge the meshes of the temporary model into ourModel
-        ourModel.meshes.insert(ourModel.meshes.end(), tempModel.meshes.begin(), tempModel.meshes.end());
-
-        // Merge the textures loaded by the temporary model into ourModel
-        ourModel.textures_loaded.insert(ourModel.textures_loaded.end(), tempModel.textures_loaded.begin(), tempModel.textures_loaded.end());
-    }
-    ourModel.SetShaderTextureNamePrefix("material.");
-
-
+    stbi_set_flip_vertically_on_load(true);
 
     PointLight& pointLight = programState->pointLight;
     pointLight.position = glm::vec3(4.0f, 4.0, 0.0);
     pointLight.ambient = glm::vec3(0.1, 0.1, 0.1);
-    pointLight.diffuse = glm::vec3(0.6, 0.6, 0.6);
+    pointLight.diffuse = glm::vec3(1.0, 1.0, 1.0);
     pointLight.specular = glm::vec3(1.0, 1.0, 1.0);
 
     pointLight.constant = 1.0;
     pointLight.linear = 0.09f;
     pointLight.quadratic = 0.032f;
+
+    DirLight dirlight;
+    dirlight.direction = glm::vec3(-0.7f, -1.0f, -0.4f);
+    dirlight.ambient = glm::vec3(1.0f);
+    dirlight.diffuse = glm::vec3(0.9f);
+    dirlight.specular = glm::vec3(0.5f);
 
 
 
@@ -246,7 +233,7 @@ int main() {
         ourShader.setFloat("pointLight.constant", pointLight.constant);
         ourShader.setFloat("pointLight.linear", pointLight.linear);
         ourShader.setFloat("pointLight.quadratic", pointLight.quadratic);
-        ourShader.setVec3("viewPosition", programState->camera.Position);
+        ourShader.setVec3("viewPos", programState->camera.Position);
         ourShader.setFloat("material.shininess", 32.0f);
         // view/projection transformations
         glm::mat4 projection = glm::perspective(glm::radians(programState->camera.Zoom),
@@ -255,13 +242,20 @@ int main() {
         ourShader.setMat4("projection", projection);
         ourShader.setMat4("view", view);
 
+        //DirLight
+        ourShader.setVec3("dirlight.direction", dirlight.direction);
+        ourShader.setVec3("dirlight.ambient", dirlight.ambient);
+        ourShader.setVec3("dirlight.diffuse", dirlight.diffuse);
+        ourShader.setVec3("dirlight.specular", dirlight.specular);
+        ourShader.setBool("blinn", blinn);
         // render the loaded model
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model,
                                programState->backpackPosition); // translate it down so it's at the center of the scene
         model = glm::scale(model, glm::vec3(programState->backpackScale));    // it's a bit too big for our scene, so scale it down
         ourShader.setMat4("model", model);
-        ourModel.Draw(ourShader);
+        deadpool.Draw(ourShader);
+        bot.Draw(ourShader);
 
         if (programState->ImGuiEnabled)
             DrawImGui(programState);
@@ -299,6 +293,20 @@ void processInput(GLFWwindow *window) {
         programState->camera.ProcessKeyboard(LEFT, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         programState->camera.ProcessKeyboard(RIGHT, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
+    {
+        programState->camera.Position.x = 0.0f;
+        programState->camera.Position.y = 0.0f;
+        programState->camera.Position.z = 0.0f;
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS && !blinnKeyPressed){
+        blinn = !blinn;
+        blinnKeyPressed = true;
+    }
+    if (glfwGetKey(window, GLFW_KEY_B) == GLFW_RELEASE){
+        blinnKeyPressed = false;
+    }
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
