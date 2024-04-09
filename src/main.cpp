@@ -17,14 +17,11 @@
 #include <iostream>
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
-
 void mouse_callback(GLFWwindow *window, double xpos, double ypos);
-
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
-
 void processInput(GLFWwindow *window);
-
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
+void renderCube();
 
 // settings
 const unsigned int SCR_WIDTH = 800;
@@ -46,9 +43,6 @@ struct PointLight {
     glm::vec3 diffuse;
     glm::vec3 specular;
 
-    float constant;
-    float linear;
-    float quadratic;
 };
 
 struct DirLight{
@@ -64,9 +58,9 @@ struct ProgramState {
     bool ImGuiEnabled = false;
     Camera camera;
     bool CameraMouseMovementUpdateEnabled = true;
-    glm::vec3 backpackPosition = glm::vec3(0.0f);
-    float backpackScale = 1.0f;
-    PointLight pointLight;
+    glm::vec3 deadpoolPosition = glm::vec3(-3.5f, -0.2f, -1.0f);
+    glm::vec3 wolverinePosition = glm::vec3(0.0f, -0.2f, -1.0f);
+    glm::vec3 streetlightPosition = glm::vec3(-2.0f, -0.2f, -2.0f);
     ProgramState()
             : camera(glm::vec3(0.0f, 0.0f, 3.0f)) {}
 
@@ -132,6 +126,8 @@ int main() {
         glfwTerminate();
         return -1;
     }
+
+
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
@@ -140,11 +136,15 @@ int main() {
     // tell GLFW to capture our mouse
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
+
+
+
     // glad: load all OpenGL function pointers
     // ---------------------------------------
     if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress)) {
         std::cout << "Failed to initialize GLAD" << std::endl;
-        return -1;
+        glfwTerminate();
+        return EXIT_FAILURE;
     }
 
 
@@ -159,31 +159,30 @@ int main() {
     ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
     (void) io;
-
-
-
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 330 core");
 
-    // configure global opengl state
-    // -----------------------------
     glEnable(GL_DEPTH_TEST);
 
-    // build and compile shaders
-    // -------------------------
-    Shader ourShader("resources/shaders/2.model_lighting.vs", "resources/shaders/2.model_lighting.fs");
+    // shaders
+    Shader modelShader("resources/shaders/model.vs", "resources/shaders/model.fs");
 
-    // load models
-    // -----------
+
+    // models
     Model deadpool("resources/objects/deadpool/scene.gltf");
     deadpool.SetShaderTextureNamePrefix("material.");
 
-    Model bot("resources/objects/jinx/scene.gltf");
-    bot.SetShaderTextureNamePrefix("material.");
+    Model wolverine("resources/objects/wolverine/scene.gltf");
+    wolverine.SetShaderTextureNamePrefix("material.");
+
+    Model streetlight("resources/objects/streetlight/scene.gltf");
+    streetlight.SetShaderTextureNamePrefix("material.");
 
     stbi_set_flip_vertically_on_load(true);
 
-    PointLight& pointLight = programState->pointLight;
+
+    //Point Light
+    /*PointLight& pointLight = programState->pointLight;
     pointLight.position = glm::vec3(4.0f, 4.0, 0.0);
     pointLight.ambient = glm::vec3(0.1, 0.1, 0.1);
     pointLight.diffuse = glm::vec3(1.0, 1.0, 1.0);
@@ -191,8 +190,9 @@ int main() {
 
     pointLight.constant = 1.0;
     pointLight.linear = 0.09f;
-    pointLight.quadratic = 0.032f;
+    pointLight.quadratic = 0.032f;*/
 
+    //Direct Light
     DirLight dirlight;
     dirlight.direction = glm::vec3(-0.7f, -1.0f, -0.4f);
     dirlight.ambient = glm::vec3(1.0f);
@@ -203,6 +203,11 @@ int main() {
 
     // draw in wireframe
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+   // PointLight pointLight;
+
+
+
 
     // render loop
     // -----------
@@ -224,38 +229,68 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // don't forget to enable shader before setting uniforms
-        ourShader.use();
-        pointLight.position = glm::vec3(4.0 * cos(currentFrame), 4.0f, 4.0 * sin(currentFrame));
-        ourShader.setVec3("pointLight.position", pointLight.position);
-        ourShader.setVec3("pointLight.ambient", pointLight.ambient);
-        ourShader.setVec3("pointLight.diffuse", pointLight.diffuse);
-        ourShader.setVec3("pointLight.specular", pointLight.specular);
-        ourShader.setFloat("pointLight.constant", pointLight.constant);
-        ourShader.setFloat("pointLight.linear", pointLight.linear);
-        ourShader.setFloat("pointLight.quadratic", pointLight.quadratic);
-        ourShader.setVec3("viewPos", programState->camera.Position);
-        ourShader.setFloat("material.shininess", 32.0f);
+        modelShader.use();
+        /*pointLight.position = glm::vec3(4.0 * cos(currentFrame), 4.0f, 4.0 * sin(currentFrame));
+        modelShader.setVec3("pointLight.position", pointLight.position);
+        modelShader.setVec3("pointLight.ambient", pointLight.ambient);
+        modelShader.setVec3("pointLight.diffuse", pointLight.diffuse);
+        modelShader.setVec3("pointLight.specular", pointLight.specular);
+        modelShader.setFloat("pointLight.constant", pointLight.constant);
+        modelShader.setFloat("pointLight.linear", pointLight.linear);
+        modelShader.setFloat("pointLight.quadratic", pointLight.quadratic);*/
+        modelShader.setVec3("viewPos", programState->camera.Position);
+        modelShader.setFloat("material.shininess", 32.0f);
         // view/projection transformations
         glm::mat4 projection = glm::perspective(glm::radians(programState->camera.Zoom),
                                                 (float) SCR_WIDTH / (float) SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = programState->camera.GetViewMatrix();
-        ourShader.setMat4("projection", projection);
-        ourShader.setMat4("view", view);
+        modelShader.setMat4("projection", projection);
+        modelShader.setMat4("view", view);
 
         //DirLight
-        ourShader.setVec3("dirlight.direction", dirlight.direction);
-        ourShader.setVec3("dirlight.ambient", dirlight.ambient);
-        ourShader.setVec3("dirlight.diffuse", dirlight.diffuse);
-        ourShader.setVec3("dirlight.specular", dirlight.specular);
-        ourShader.setBool("blinn", blinn);
-        // render the loaded model
+        modelShader.setVec3("dirlight.direction", dirlight.direction);
+        modelShader.setVec3("dirlight.ambient", dirlight.ambient);
+        modelShader.setVec3("dirlight.diffuse", dirlight.diffuse);
+        modelShader.setVec3("dirlight.specular", dirlight.specular);
+        modelShader.setBool("blinn", blinn);
+
+
+        //face culling
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+
+        // render model: deadpool
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model,
-                               programState->backpackPosition); // translate it down so it's at the center of the scene
-        model = glm::scale(model, glm::vec3(programState->backpackScale));    // it's a bit too big for our scene, so scale it down
-        ourShader.setMat4("model", model);
-        deadpool.Draw(ourShader);
-        bot.Draw(ourShader);
+                               programState->deadpoolPosition);
+        model = glm::rotate(model, (float)glm::radians(90.0), glm::vec3(0,1, 0));
+        model = glm::scale(model, glm::vec3(0.2f));    // it's a bit too big for our scene, so scale it down
+        modelShader.setMat4("model", model);
+        deadpool.Draw(modelShader);
+
+        // render model: wolverine
+        model = glm::mat4(1.0f);
+        model = glm::translate(model,
+                               programState->wolverinePosition);
+        model = glm::rotate(model, (float)glm::radians(-90.0), glm::vec3(0,1, 0));
+
+        model = glm::scale(model, glm::vec3(1.0f));    // it's a bit too big for our scene, so scale it down
+        modelShader.setMat4("model", model);
+        wolverine.Draw(modelShader);
+
+        // render model: streetlight
+        model = glm::mat4(1.0f);
+        model = glm::translate(model,
+                               programState->streetlightPosition);
+        //model = glm::rotate(model, (float)glm::radians(-90.0), glm::vec3(0,1, 0));
+
+        model = glm::scale(model, glm::vec3(0.012f));    // it's a bit too big for our scene, so scale it down
+        modelShader.setMat4("model", model);
+        streetlight.Draw(modelShader);
+
+
+
+        glDisable(GL_CULL_FACE);
 
         if (programState->ImGuiEnabled)
             DrawImGui(programState);
@@ -270,11 +305,13 @@ int main() {
 
     programState->SaveToFile("resources/program_state.txt");
     delete programState;
+
+
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
-    // glfw: terminate, clearing all previously allocated GLFW resources.
-    // ------------------------------------------------------------------
+
+
     glfwTerminate();
     return 0;
 }
@@ -354,12 +391,9 @@ void DrawImGui(ProgramState *programState) {
         ImGui::Text("Hello text");
         ImGui::SliderFloat("Float slider", &f, 0.0, 1.0);
         ImGui::ColorEdit3("Background color", (float *) &programState->clearColor);
-        ImGui::DragFloat3("Backpack position", (float*)&programState->backpackPosition);
-        ImGui::DragFloat("Backpack scale", &programState->backpackScale, 0.05, 0.1, 4.0);
+        ImGui::DragFloat3("Backpack position", (float*)&programState->deadpoolPosition);
+        //ImGui::DragFloat("Backpack scale", &programState->backpackScale, 0.05, 0.1, 4.0);
 
-        ImGui::DragFloat("pointLight.constant", &programState->pointLight.constant, 0.05, 0.0, 1.0);
-        ImGui::DragFloat("pointLight.linear", &programState->pointLight.linear, 0.05, 0.0, 1.0);
-        ImGui::DragFloat("pointLight.quadratic", &programState->pointLight.quadratic, 0.05, 0.0, 1.0);
         ImGui::End();
     }
 
@@ -388,3 +422,76 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
         }
     }
 }
+
+unsigned int cubeVAO = 0;
+unsigned int cubeVBO = 0;
+void renderCube(){
+    // initialize (if necessary)
+    if (cubeVAO == 0){
+        float vertices[] = {
+                //position                      //normals                           //texture coords
+                // back face
+                -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
+                1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
+                1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 0.0f, // bottom-right
+                1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
+                -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
+                -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 1.0f, // top-left
+                // front face
+                -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
+                1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 0.0f, // bottom-right
+                1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
+                1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
+                -1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 1.0f, // top-left
+                -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
+                // left face
+                -1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
+                -1.0f,  1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-left
+                -1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
+                -1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
+                -1.0f, -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-right
+                -1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
+                // right face
+                1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
+                1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
+                1.0f,  1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-right
+                1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
+                1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
+                1.0f, -1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-left
+                // bottom face
+                -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
+                1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 1.0f, // top-left
+                1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
+                1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
+                -1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f, // bottom-right
+                -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
+                // top face
+                -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
+                1.0f,  1.0f , 1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
+                1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 1.0f, // top-right
+                1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
+                -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
+                -1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f  // bottom-left
+        };
+        glGenVertexArrays(1, &cubeVAO);
+        glGenBuffers(1, &cubeVBO);
+
+        glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+        glBindVertexArray(cubeVAO);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+    }
+    // render Cube
+    glBindVertexArray(cubeVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glBindVertexArray(0);
+}
+

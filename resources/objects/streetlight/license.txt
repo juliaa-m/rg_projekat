@@ -1,0 +1,11 @@
+Model Information:
+* title:	Stylized Street Light
+* source:	https://sketchfab.com/3d-models/stylized-street-light-877c0ac0ad414ac1a9c9f7689add01c4
+* author:	Willowboxart (https://sketchfab.com/willowboxart)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Stylized Street Light" (https://sketchfab.com/3d-models/stylized-street-light-877c0ac0ad414ac1a9c9f7689add01c4) by Willowboxart (https://sketchfab.com/willowboxart) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
