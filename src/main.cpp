@@ -166,6 +166,7 @@ int main() {
 
     // shaders
     Shader modelShader("resources/shaders/model.vs", "resources/shaders/model.fs");
+    Shader lightShader("resources/shaders/model.vs", "resources/shaders/light.fs");
 
 
     // models
@@ -182,21 +183,18 @@ int main() {
 
 
     //Point Light
-    /*PointLight& pointLight = programState->pointLight;
-    pointLight.position = glm::vec3(4.0f, 4.0, 0.0);
+    PointLight pointLight;
+    pointLight.position = glm::vec3(-2.0f, 2.8, -1.22f);
     pointLight.ambient = glm::vec3(0.1, 0.1, 0.1);
     pointLight.diffuse = glm::vec3(1.0, 1.0, 1.0);
     pointLight.specular = glm::vec3(1.0, 1.0, 1.0);
 
-    pointLight.constant = 1.0;
-    pointLight.linear = 0.09f;
-    pointLight.quadratic = 0.032f;*/
 
     //Direct Light
     DirLight dirlight;
-    dirlight.direction = glm::vec3(-0.7f, -1.0f, -0.4f);
-    dirlight.ambient = glm::vec3(1.0f);
-    dirlight.diffuse = glm::vec3(0.9f);
+    dirlight.direction = glm::vec3(-0.7f, -1.0f, -1.0);
+    dirlight.ambient = glm::vec3(0.08f);
+    dirlight.diffuse = glm::vec3(1.0f);
     dirlight.specular = glm::vec3(0.5f);
 
 
@@ -204,7 +202,6 @@ int main() {
     // draw in wireframe
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-   // PointLight pointLight;
 
 
 
@@ -230,14 +227,12 @@ int main() {
 
         // don't forget to enable shader before setting uniforms
         modelShader.use();
-        /*pointLight.position = glm::vec3(4.0 * cos(currentFrame), 4.0f, 4.0 * sin(currentFrame));
+
         modelShader.setVec3("pointLight.position", pointLight.position);
         modelShader.setVec3("pointLight.ambient", pointLight.ambient);
         modelShader.setVec3("pointLight.diffuse", pointLight.diffuse);
         modelShader.setVec3("pointLight.specular", pointLight.specular);
-        modelShader.setFloat("pointLight.constant", pointLight.constant);
-        modelShader.setFloat("pointLight.linear", pointLight.linear);
-        modelShader.setFloat("pointLight.quadratic", pointLight.quadratic);*/
+
         modelShader.setVec3("viewPos", programState->camera.Position);
         modelShader.setFloat("material.shininess", 32.0f);
         // view/projection transformations
@@ -288,9 +283,23 @@ int main() {
         modelShader.setMat4("model", model);
         streetlight.Draw(modelShader);
 
+        //street light - light
+        lightShader.use();
+        lightShader.setMat4("projection", projection);
+        lightShader.setMat4("view", view);
+        model = glm::mat4(1.0f);
 
+        model = glm::translate(model, pointLight.position);
+        model = glm::scale(model, glm::vec3(0.02f));
+
+        lightShader.setMat4("model", model);
+        lightShader.setVec3("lightColor", glm::vec3(0.0f, 1.0f, 0.0f));
+
+        renderCube();
 
         glDisable(GL_CULL_FACE);
+
+
 
         if (programState->ImGuiEnabled)
             DrawImGui(programState);
