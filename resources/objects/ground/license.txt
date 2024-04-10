@@ -1,0 +1,11 @@
+Model Information:
+* title:	Ground Plate04 Scan
+* source:	https://sketchfab.com/3d-models/ground-plate04-scan-eb141918b3734e5bb2bafacd6e4fd106
+* author:	joeshu (https://sketchfab.com/joeshu)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Ground Plate04 Scan" (https://sketchfab.com/3d-models/ground-plate04-scan-eb141918b3734e5bb2bafacd6e4fd106) by joeshu (https://sketchfab.com/joeshu) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

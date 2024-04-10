@@ -59,11 +59,14 @@ struct ProgramState {
     bool ImGuiEnabled = false;
     Camera camera;
     bool CameraMouseMovementUpdateEnabled = true;
-    glm::vec3 deadpoolPosition = glm::vec3(-3.5f, -0.2f, -1.0f);
+    glm::vec3 deadpoolPosition = glm::vec3(-3.5f, -0.25f, -1.0f);
     glm::vec3 wolverinePosition = glm::vec3(0.0f, -0.2f, -1.0f);
     glm::vec3 streetlightPosition = glm::vec3(-2.0f, -0.2f, -2.0f);
-    glm::vec3 containerPosition = glm::vec3(-7.0f, -0.2f, -12.0f);
-    glm::vec3 buildingPosition = glm::vec3(7.0f, 1.0f, -3.0f);
+    glm::vec3 container1Position = glm::vec3(-7.0f, 1.9f, -8.0f);
+    glm::vec3 container2Position = glm::vec3(-11.0f, 1.9f, -7.0f);
+    glm::vec3 container3Position = glm::vec3(-11.0f, 6.0f, -8.0f);
+    glm::vec3 buildingPosition = glm::vec3(10.0f, 5.5f, 5.0f);
+    glm::vec3 groundPosition = glm::vec3(-1.0f, -0.2f, -2.5f);
     ProgramState()
             : camera(glm::vec3(0.0f, 0.0f, 3.0f)) {}
 
@@ -185,6 +188,18 @@ int main() {
     wolverine.SetShaderTextureNamePrefix("material.");
     Model streetlight("resources/objects/streetlight/scene.gltf");
     streetlight.SetShaderTextureNamePrefix("material.");
+    Model container1("resources/objects/container/scene.gltf");
+    container1.SetShaderTextureNamePrefix("material.");
+    Model container2("resources/objects/container/scene.gltf");
+    container1.SetShaderTextureNamePrefix("material.");
+    Model container3("resources/objects/container/scene.gltf");
+    container1.SetShaderTextureNamePrefix("material.");
+    Model building("resources/objects/building/scene.gltf");
+    building.SetShaderTextureNamePrefix("material.");
+
+    Model ground1("resources/objects/ground/scene.gltf");
+    ground1.SetShaderTextureNamePrefix("material.");
+
 
     unsigned glassTexture = loadTexture("resources/textures/glass.png");
 
@@ -315,6 +330,23 @@ int main() {
 
         glm::mat4 model = glm::mat4(1.0f);
 
+        //SIDENOTE: this object had issues rendering with Face Culling, hence that technique is not applied here
+        // render model: building
+        model = glm::mat4(1.0f);
+        model = glm::translate(model,programState->buildingPosition);
+        model = glm::scale(model, glm::vec3(0.6f));
+        modelShader.setMat4("model", model);
+        building.Draw(modelShader);
+
+        // render model: ground1
+        model = glm::mat4(1.0f);
+        model = glm::translate(model,programState->groundPosition);
+        model = glm::scale(model, glm::vec3(10.0f));
+        model = glm::rotate(model, (float)glm::radians(90.0), glm::vec3(0, 0 , 1));
+        model = glm::rotate(model, (float)glm::radians(90.0), glm::vec3(0, 1 , 0));
+        modelShader.setMat4("model", model);
+        ground1.Draw(modelShader);
+
 
 
         //face culling
@@ -344,7 +376,27 @@ int main() {
         modelShader.setMat4("model", model);
         streetlight.Draw(modelShader);
 
-        
+        // render model: container1
+        model = glm::mat4(1.0f);
+        model = glm::translate(model,programState->container1Position);
+        model = glm::scale(model, glm::vec3(1.5f));
+        modelShader.setMat4("model", model);
+        container1.Draw(modelShader);
+
+        // render model: container2
+        model = glm::mat4(1.0f);
+        model = glm::translate(model,programState->container2Position);
+        model = glm::scale(model, glm::vec3(1.5f));
+        modelShader.setMat4("model", model);
+        container2.Draw(modelShader);
+
+        // render model: container3
+        model = glm::mat4(1.0f);
+        model = glm::translate(model,programState->container3Position);
+        model = glm::scale(model, glm::vec3(1.5f));
+        model = glm::rotate(model, (float)glm::radians(18.0), glm::vec3(0,1, 0));
+        modelShader.setMat4("model", model);
+        container3.Draw(modelShader);
 
         //street light - light
         lightShader.use();
@@ -416,9 +468,9 @@ void processInput(GLFWwindow *window) {
         programState->camera.ProcessKeyboard(RIGHT, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
     {
-        programState->camera.Position.x = 0.0f;
-        programState->camera.Position.y = 0.0f;
-        programState->camera.Position.z = 0.0f;
+        programState->camera.Position.x = -4.0f;
+        programState->camera.Position.y = 2.0f;
+        programState->camera.Position.z = 4.0f;
     }
 
     if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS && !blinnKeyPressed){
