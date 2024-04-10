@@ -1,0 +1,11 @@
+Model Information:
+* title:	Military Container
+* source:	https://sketchfab.com/3d-models/military-container-246b8bbf724b40e5b6005391323fd462
+* author:	erlendbro (https://sketchfab.com/erlendbro)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Military Container" (https://sketchfab.com/3d-models/military-container-246b8bbf724b40e5b6005391323fd462) by erlendbro (https://sketchfab.com/erlendbro) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

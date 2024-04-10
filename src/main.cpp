@@ -22,6 +22,7 @@ void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
 void renderCube();
+unsigned int loadTexture(const char *path);
 
 // settings
 const unsigned int SCR_WIDTH = 800;
@@ -61,6 +62,8 @@ struct ProgramState {
     glm::vec3 deadpoolPosition = glm::vec3(-3.5f, -0.2f, -1.0f);
     glm::vec3 wolverinePosition = glm::vec3(0.0f, -0.2f, -1.0f);
     glm::vec3 streetlightPosition = glm::vec3(-2.0f, -0.2f, -2.0f);
+    glm::vec3 containerPosition = glm::vec3(-7.0f, -0.2f, -12.0f);
+    glm::vec3 buildingPosition = glm::vec3(7.0f, 1.0f, -3.0f);
     ProgramState()
             : camera(glm::vec3(0.0f, 0.0f, 3.0f)) {}
 
@@ -162,22 +165,28 @@ int main() {
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 330 core");
 
+
+    //blend
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
     glEnable(GL_DEPTH_TEST);
 
     // shaders
     Shader modelShader("resources/shaders/model.vs", "resources/shaders/model.fs");
     Shader lightShader("resources/shaders/model.vs", "resources/shaders/light.fs");
+    Shader blendShader("resources/shaders/blend.vs", "resources/shaders/blend.fs");
 
 
     // models
     Model deadpool("resources/objects/deadpool/scene.gltf");
     deadpool.SetShaderTextureNamePrefix("material.");
-
     Model wolverine("resources/objects/wolverine/scene.gltf");
     wolverine.SetShaderTextureNamePrefix("material.");
-
     Model streetlight("resources/objects/streetlight/scene.gltf");
     streetlight.SetShaderTextureNamePrefix("material.");
+
+    unsigned glassTexture = loadTexture("resources/textures/glass.png");
 
     stbi_set_flip_vertically_on_load(true);
 
@@ -197,14 +206,67 @@ int main() {
     dirlight.diffuse = glm::vec3(1.0f);
     dirlight.specular = glm::vec3(0.5f);
 
+    //prison
+    float prisonCube[] = {
+            // positions          // texture Coords
+            -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+            0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+            0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+            0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+            -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+            -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+
+            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+            0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+            0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+            0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+            -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+
+            -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+            -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+            -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+            0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+            0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+            0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+            0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+            0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+            0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+            0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+            0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+            0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+
+            -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+            0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+            0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+            0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+            -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+            -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+    };
 
 
-    // draw in wireframe
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    // cube VAO
+    unsigned int prisonVAO, prisonVBO;
+    glGenVertexArrays(1, &prisonVAO);
+    glGenBuffers(1, &prisonVBO);
+    glBindVertexArray(prisonVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, prisonVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(prisonCube), &prisonCube, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 
-
-
-
+    blendShader.use();
+    blendShader.setInt("texture1", 0);
 
     // render loop
     // -----------
@@ -235,9 +297,10 @@ int main() {
 
         modelShader.setVec3("viewPos", programState->camera.Position);
         modelShader.setFloat("material.shininess", 32.0f);
+
+
         // view/projection transformations
-        glm::mat4 projection = glm::perspective(glm::radians(programState->camera.Zoom),
-                                                (float) SCR_WIDTH / (float) SCR_HEIGHT, 0.1f, 100.0f);
+        glm::mat4 projection = glm::perspective(glm::radians(programState->camera.Zoom),(float) SCR_WIDTH / (float) SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = programState->camera.GetViewMatrix();
         modelShader.setMat4("projection", projection);
         modelShader.setMat4("view", view);
@@ -250,54 +313,66 @@ int main() {
         modelShader.setBool("blinn", blinn);
 
 
+        glm::mat4 model = glm::mat4(1.0f);
+
+
+
         //face culling
         glEnable(GL_CULL_FACE);
         glCullFace(GL_BACK);
 
         // render model: deadpool
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model,
-                               programState->deadpoolPosition);
+        model = glm::mat4(1.0f);
+        model = glm::translate(model,programState->deadpoolPosition);
         model = glm::rotate(model, (float)glm::radians(90.0), glm::vec3(0,1, 0));
-        model = glm::scale(model, glm::vec3(0.2f));    // it's a bit too big for our scene, so scale it down
+        model = glm::scale(model, glm::vec3(0.2f));
         modelShader.setMat4("model", model);
         deadpool.Draw(modelShader);
 
         // render model: wolverine
         model = glm::mat4(1.0f);
-        model = glm::translate(model,
-                               programState->wolverinePosition);
+        model = glm::translate(model,programState->wolverinePosition);
         model = glm::rotate(model, (float)glm::radians(-90.0), glm::vec3(0,1, 0));
-
-        model = glm::scale(model, glm::vec3(1.0f));    // it's a bit too big for our scene, so scale it down
+        model = glm::scale(model, glm::vec3(1.0f));
         modelShader.setMat4("model", model);
         wolverine.Draw(modelShader);
 
         // render model: streetlight
         model = glm::mat4(1.0f);
-        model = glm::translate(model,
-                               programState->streetlightPosition);
-        //model = glm::rotate(model, (float)glm::radians(-90.0), glm::vec3(0,1, 0));
-
-        model = glm::scale(model, glm::vec3(0.012f));    // it's a bit too big for our scene, so scale it down
+        model = glm::translate(model,programState->streetlightPosition);
+        model = glm::scale(model, glm::vec3(0.012f));
         modelShader.setMat4("model", model);
         streetlight.Draw(modelShader);
+
+        
 
         //street light - light
         lightShader.use();
         lightShader.setMat4("projection", projection);
         lightShader.setMat4("view", view);
         model = glm::mat4(1.0f);
-
         model = glm::translate(model, pointLight.position);
         model = glm::scale(model, glm::vec3(0.02f));
-
         lightShader.setMat4("model", model);
-        lightShader.setVec3("lightColor", glm::vec3(0.0f, 1.0f, 0.0f));
+        lightShader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 0.7f));
 
         renderCube();
 
         glDisable(GL_CULL_FACE);
+
+
+        //cube prison
+        blendShader.use();
+        blendShader.setMat4("projection", projection);
+        blendShader.setMat4("view", view);
+        glBindVertexArray(prisonVAO);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, glassTexture);
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(0.0, 0.9, -0.7));
+        model = glm::scale(model, glm::vec3(2.3f));
+        blendShader.setMat4("model", model);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
 
 
 
@@ -504,3 +579,40 @@ void renderCube(){
     glBindVertexArray(0);
 }
 
+//2D textures
+unsigned int loadTexture(char const * path)
+{
+    unsigned int textureID;
+    glGenTextures(1, &textureID);
+
+    int width, height, nrComponents;
+    unsigned char *data = stbi_load(path, &width, &height, &nrComponents, 0);
+    if (data)
+    {
+        GLenum format;
+        if (nrComponents == 1)
+            format = GL_RED;
+        else if (nrComponents == 3)
+            format = GL_RGB;
+        else if (nrComponents == 4)
+            format = GL_RGBA;
+
+        glBindTexture(GL_TEXTURE_2D, textureID);
+        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        stbi_image_free(data);
+    }
+    else
+    {
+        std::cout << "Texture failed to load at path: " << path << std::endl;
+        stbi_image_free(data);
+    }
+
+    return textureID;
+}
