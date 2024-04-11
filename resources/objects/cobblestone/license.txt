@@ -1,0 +1,11 @@
+Model Information:
+* title:	cobblestone ground - lowpoly
+* source:	https://sketchfab.com/3d-models/cobblestone-ground-lowpoly-a70ea3530a004baebe6c33c29cebe1de
+* author:	SPLEEN VISION (https://sketchfab.com/spleen.vision)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "cobblestone ground - lowpoly" (https://sketchfab.com/3d-models/cobblestone-ground-lowpoly-a70ea3530a004baebe6c33c29cebe1de) by SPLEEN VISION (https://sketchfab.com/spleen.vision) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

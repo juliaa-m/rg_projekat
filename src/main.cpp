@@ -23,10 +23,12 @@ void processInput(GLFWwindow *window);
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
 void renderCube();
 unsigned int loadTexture(const char *path);
+unsigned int loadCubemap(vector<std::string> faces);
+
 
 // settings
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
+const unsigned int SCR_WIDTH = 1000;
+const unsigned int SCR_HEIGHT = 750;
 
 // camera
 
@@ -55,18 +57,35 @@ struct DirLight{
 };
 
 struct ProgramState {
-    glm::vec3 clearColor = glm::vec3(0);
     bool ImGuiEnabled = false;
     Camera camera;
     bool CameraMouseMovementUpdateEnabled = true;
     glm::vec3 deadpoolPosition = glm::vec3(-3.5f, -0.25f, -1.0f);
     glm::vec3 wolverinePosition = glm::vec3(0.0f, -0.2f, -1.0f);
     glm::vec3 streetlightPosition = glm::vec3(-2.0f, -0.2f, -2.0f);
+    glm::vec3 lightpPosition1 = glm::vec3(0.5f, 4.5f, 7.0f);
+    glm::vec3 lightpPosition2 = glm::vec3(10.5f, 4.5f, 7.0f);
     glm::vec3 container1Position = glm::vec3(-7.0f, 1.9f, -8.0f);
     glm::vec3 container2Position = glm::vec3(-11.0f, 1.9f, -7.0f);
     glm::vec3 container3Position = glm::vec3(-11.0f, 6.0f, -8.0f);
-    glm::vec3 buildingPosition = glm::vec3(10.0f, 5.5f, 5.0f);
-    glm::vec3 groundPosition = glm::vec3(-1.0f, -0.2f, -2.5f);
+    glm::vec3 container4Position = glm::vec3(-7.0f, 1.9f, 7.0f);
+    glm::vec3 container5Position = glm::vec3(0.0f, 1.9f, -15.0f);
+    glm::vec3 container6Position = glm::vec3(7.0f, 1.9f, -9.0f);
+    glm::vec3 container7Position = glm::vec3(14.0f, 4.0f, -5.0f);
+    glm::vec3 container8Position = glm::vec3(-26.0f, 1.9f, -2.0f);
+    glm::vec3 buildingPosition1 = glm::vec3(10.0f, 5.5f, 10.0f);
+    glm::vec3 buildingPosition2 = glm::vec3(20.0f, 5.5f, 10.0f);
+    glm::vec3 buildingPosition3 = glm::vec3(30.0f, 5.5f, 10.0f);
+    glm::vec3 buildingPosition4 = glm::vec3(29.9f, 5.5f, -1.5f);
+    glm::vec3 buildingPosition5 = glm::vec3(29.9f, 5.5f, -11.5f);
+    glm::vec3 buildingPosition6 = glm::vec3(29.9f, 5.5f, -21.5f);
+    glm::vec3 buildingPosition7 = glm::vec3(16.0f, 5.5f, -20.0f);
+    glm::vec3 groundPosition1 = glm::vec3(-25.0f, -1.71f, -2.5f);
+    glm::vec3 groundPosition2 = glm::vec3(20.0f, -1.7f, -2.5f);
+    glm::vec3 groundPosition3 = glm::vec3(-25.0f, -1.71f, -25.3f);
+    glm::vec3 groundPosition4 = glm::vec3(20.0f, -1.7f, -25.3f);
+    glm::vec3 groundPosition5 = glm::vec3(-25.0f, -1.71f, 20.4f);
+    glm::vec3 groundPosition6 = glm::vec3(20.0f, -1.7f, 20.4f);
     ProgramState()
             : camera(glm::vec3(0.0f, 0.0f, 3.0f)) {}
 
@@ -77,10 +96,7 @@ struct ProgramState {
 
 void ProgramState::SaveToFile(std::string filename) {
     std::ofstream out(filename);
-    out << clearColor.r << '\n'
-        << clearColor.g << '\n'
-        << clearColor.b << '\n'
-        << ImGuiEnabled << '\n'
+    out << ImGuiEnabled << '\n'
         << camera.Position.x << '\n'
         << camera.Position.y << '\n'
         << camera.Position.z << '\n'
@@ -92,10 +108,7 @@ void ProgramState::SaveToFile(std::string filename) {
 void ProgramState::LoadFromFile(std::string filename) {
     std::ifstream in(filename);
     if (in) {
-        in >> clearColor.r
-           >> clearColor.g
-           >> clearColor.b
-           >> ImGuiEnabled
+        in >> ImGuiEnabled
            >> camera.Position.x
            >> camera.Position.y
            >> camera.Position.z
@@ -179,6 +192,7 @@ int main() {
     Shader modelShader("resources/shaders/model.vs", "resources/shaders/model.fs");
     Shader lightShader("resources/shaders/model.vs", "resources/shaders/light.fs");
     Shader blendShader("resources/shaders/blend.vs", "resources/shaders/blend.fs");
+    Shader skyboxShader("resources/shaders/skybox.vs", "resources/shaders/skybox.fs");
 
 
     // models
@@ -196,10 +210,10 @@ int main() {
     container1.SetShaderTextureNamePrefix("material.");
     Model building("resources/objects/building/scene.gltf");
     building.SetShaderTextureNamePrefix("material.");
-
-    Model ground1("resources/objects/ground/scene.gltf");
+    Model ground1("resources/objects/cobblestone/scene.gltf");
     ground1.SetShaderTextureNamePrefix("material.");
-
+    Model lightp("resources/objects/lightpole/scene.gltf");
+    lightp.SetShaderTextureNamePrefix("material.");
 
     unsigned glassTexture = loadTexture("resources/textures/glass.png");
 
@@ -217,9 +231,9 @@ int main() {
     //Direct Light
     DirLight dirlight;
     dirlight.direction = glm::vec3(-0.7f, -1.0f, -1.0);
-    dirlight.ambient = glm::vec3(0.08f);
-    dirlight.diffuse = glm::vec3(1.0f);
-    dirlight.specular = glm::vec3(0.5f);
+    dirlight.ambient = glm::vec3(0.1f);
+    dirlight.diffuse = glm::vec3(0.5f);
+    dirlight.specular = glm::vec3(0.7f);
 
     //prison
     float prisonCube[] = {
@@ -283,6 +297,78 @@ int main() {
     blendShader.use();
     blendShader.setInt("texture1", 0);
 
+    //skybox
+    float skyboxVertices[] = {
+            // positions
+            -1.0f,  1.0f, -1.0f,
+            -1.0f, -1.0f, -1.0f,
+            1.0f, -1.0f, -1.0f,
+            1.0f, -1.0f, -1.0f,
+            1.0f,  1.0f, -1.0f,
+            -1.0f,  1.0f, -1.0f,
+
+            -1.0f, -1.0f,  1.0f,
+            -1.0f, -1.0f, -1.0f,
+            -1.0f,  1.0f, -1.0f,
+            -1.0f,  1.0f, -1.0f,
+            -1.0f,  1.0f,  1.0f,
+            -1.0f, -1.0f,  1.0f,
+
+            1.0f, -1.0f, -1.0f,
+            1.0f, -1.0f,  1.0f,
+            1.0f,  1.0f,  1.0f,
+            1.0f,  1.0f,  1.0f,
+            1.0f,  1.0f, -1.0f,
+            1.0f, -1.0f, -1.0f,
+
+            -1.0f, -1.0f,  1.0f,
+            -1.0f,  1.0f,  1.0f,
+            1.0f,  1.0f,  1.0f,
+            1.0f,  1.0f,  1.0f,
+            1.0f, -1.0f,  1.0f,
+            -1.0f, -1.0f,  1.0f,
+
+            -1.0f,  1.0f, -1.0f,
+            1.0f,  1.0f, -1.0f,
+            1.0f,  1.0f,  1.0f,
+            1.0f,  1.0f,  1.0f,
+            -1.0f,  1.0f,  1.0f,
+            -1.0f,  1.0f, -1.0f,
+
+            -1.0f, -1.0f, -1.0f,
+            -1.0f, -1.0f,  1.0f,
+            1.0f, -1.0f, -1.0f,
+            1.0f, -1.0f, -1.0f,
+            -1.0f, -1.0f,  1.0f,
+            1.0f, -1.0f,  1.0f
+    };
+    // skybox VAO
+    unsigned int skyboxVAO, skyboxVBO;
+    glGenVertexArrays(1, &skyboxVAO);
+    glGenBuffers(1, &skyboxVBO);
+    glBindVertexArray(skyboxVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
+    stbi_set_flip_vertically_on_load(false);
+    vector<std::string> faces
+            {
+                    FileSystem::getPath("resources/textures/skybox/wrath_ft.jpg"),
+                    FileSystem::getPath("resources/textures/skybox/wrath_bk.jpg"),
+                    FileSystem::getPath("resources/textures/skybox/wrath_up.jpg"),
+                    FileSystem::getPath("resources/textures/skybox/wrath_dn.jpg"),
+                    FileSystem::getPath("resources/textures/skybox/wrath_rt.jpg"),
+                    FileSystem::getPath("resources/textures/skybox/wrath_lf.jpg")
+            };
+    unsigned int cubemapTexture = loadCubemap(faces);
+    stbi_set_flip_vertically_on_load(true);
+
+
+    skyboxShader.use();
+    skyboxShader.setInt("skybox", 0);
+
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window)) {
@@ -299,7 +385,9 @@ int main() {
 
         // render
         // ------
-        glClearColor(programState->clearColor.r, programState->clearColor.g, programState->clearColor.b, 1.0f);
+        //glClearColor(135, 116, 81, 1.0f);
+        glClearColor(0.41961f, 0.36863f, 0.28235f, 0.1f);
+
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // don't forget to enable shader before setting uniforms
@@ -330,22 +418,54 @@ int main() {
 
         glm::mat4 model = glm::mat4(1.0f);
 
-        //SIDENOTE: this object had issues rendering with Face Culling, hence that technique is not applied here
+        //SIDENOTE: these objects had issues rendering with Face Culling, hence that technique is not applied here
         // render model: building
         model = glm::mat4(1.0f);
-        model = glm::translate(model,programState->buildingPosition);
+        model = glm::translate(model,programState->buildingPosition1);
         model = glm::scale(model, glm::vec3(0.6f));
         modelShader.setMat4("model", model);
         building.Draw(modelShader);
 
-        // render model: ground1
         model = glm::mat4(1.0f);
-        model = glm::translate(model,programState->groundPosition);
-        model = glm::scale(model, glm::vec3(10.0f));
-        model = glm::rotate(model, (float)glm::radians(90.0), glm::vec3(0, 0 , 1));
+        model = glm::translate(model,programState->buildingPosition2);
+        model = glm::scale(model, glm::vec3(0.6f));
+        modelShader.setMat4("model", model);
+        building.Draw(modelShader);
+
+        model = glm::mat4(1.0f);
+        model = glm::translate(model,programState->buildingPosition3);
+        model = glm::scale(model, glm::vec3(0.6f));
+        modelShader.setMat4("model", model);
+        building.Draw(modelShader);
+
+        model = glm::mat4(1.0f);
+        model = glm::translate(model,programState->buildingPosition4);
+        model = glm::scale(model, glm::vec3(0.6f));
         model = glm::rotate(model, (float)glm::radians(90.0), glm::vec3(0, 1 , 0));
         modelShader.setMat4("model", model);
-        ground1.Draw(modelShader);
+        building.Draw(modelShader);
+
+        model = glm::mat4(1.0f);
+        model = glm::translate(model,programState->buildingPosition5);
+        model = glm::scale(model, glm::vec3(0.6f));
+        model = glm::rotate(model, (float)glm::radians(90.0), glm::vec3(0, 1 , 0));
+        modelShader.setMat4("model", model);
+        building.Draw(modelShader);
+
+        model = glm::mat4(1.0f);
+        model = glm::translate(model,programState->buildingPosition6);
+        model = glm::scale(model, glm::vec3(0.6f));
+        model = glm::rotate(model, (float)glm::radians(90.0), glm::vec3(0, 1 , 0));
+        modelShader.setMat4("model", model);
+        building.Draw(modelShader);
+
+        model = glm::mat4(1.0f);
+        model = glm::translate(model,programState->buildingPosition7);
+        model = glm::scale(model, glm::vec3(0.6f));
+        model = glm::rotate(model, (float)glm::radians(180.0), glm::vec3(0, 1 , 0));
+        modelShader.setMat4("model", model);
+        building.Draw(modelShader);
+
 
 
 
@@ -376,27 +496,129 @@ int main() {
         modelShader.setMat4("model", model);
         streetlight.Draw(modelShader);
 
-        // render model: container1
+        // render model: containers
         model = glm::mat4(1.0f);
         model = glm::translate(model,programState->container1Position);
         model = glm::scale(model, glm::vec3(1.5f));
         modelShader.setMat4("model", model);
         container1.Draw(modelShader);
 
-        // render model: container2
         model = glm::mat4(1.0f);
         model = glm::translate(model,programState->container2Position);
         model = glm::scale(model, glm::vec3(1.5f));
         modelShader.setMat4("model", model);
         container2.Draw(modelShader);
 
-        // render model: container3
         model = glm::mat4(1.0f);
         model = glm::translate(model,programState->container3Position);
         model = glm::scale(model, glm::vec3(1.5f));
         model = glm::rotate(model, (float)glm::radians(18.0), glm::vec3(0,1, 0));
         modelShader.setMat4("model", model);
         container3.Draw(modelShader);
+
+        model = glm::mat4(1.0f);
+        model = glm::translate(model,programState->container4Position);
+        model = glm::scale(model, glm::vec3(1.5f));
+        model = glm::rotate(model, (float)glm::radians(45.0), glm::vec3(0,1, 0));
+        modelShader.setMat4("model", model);
+        container3.Draw(modelShader);
+
+        model = glm::mat4(1.0f);
+        model = glm::translate(model,programState->container5Position);
+        model = glm::scale(model, glm::vec3(1.5f));
+        model = glm::rotate(model, (float)glm::radians(45.0), glm::vec3(0,1, 0));
+        modelShader.setMat4("model", model);
+        container3.Draw(modelShader);
+
+        model = glm::mat4(1.0f);
+        model = glm::translate(model,programState->container6Position);
+        model = glm::scale(model, glm::vec3(1.5f));
+        model = glm::rotate(model, (float)glm::radians(-37.0), glm::vec3(0,1, 0));
+        modelShader.setMat4("model", model);
+        container3.Draw(modelShader);
+
+        model = glm::mat4(1.0f);
+        model = glm::translate(model,programState->container7Position);
+        model = glm::scale(model, glm::vec3(1.5f));
+        model = glm::rotate(model, (float)glm::radians(43.0), glm::vec3(0,1, 0));
+        model = glm::rotate(model, (float)glm::radians(19.3), glm::vec3(1,0, 0));
+        modelShader.setMat4("model", model);
+        container3.Draw(modelShader);
+
+        model = glm::mat4(1.0f);
+        model = glm::translate(model,programState->container8Position);
+        model = glm::scale(model, glm::vec3(1.5f));
+        modelShader.setMat4("model", model);
+        container3.Draw(modelShader);
+
+
+        // render model: ground
+        model = glm::mat4(1.0f);
+        model = glm::translate(model,programState->groundPosition1);
+        model = glm::scale(model, glm::vec3(5.0f));
+        model = glm::rotate(model, (float)glm::radians(90.0), glm::vec3(0, 0 , 1));
+        model = glm::rotate(model, (float)glm::radians(90.0), glm::vec3(0, 1 , 0));
+        modelShader.setMat4("model", model);
+        ground1.Draw(modelShader);
+
+
+        model = glm::mat4(1.0f);
+        model = glm::translate(model,programState->groundPosition2);
+        model = glm::scale(model, glm::vec3(5.0f));
+        model = glm::rotate(model, (float)glm::radians(90.0), glm::vec3(0, 0 , 1));
+        model = glm::rotate(model, (float)glm::radians(90.0), glm::vec3(0, 1 , 0));
+        modelShader.setMat4("model", model);
+        ground1.Draw(modelShader);
+
+
+        model = glm::mat4(1.0f);
+        model = glm::translate(model,programState->groundPosition3);
+        model = glm::scale(model, glm::vec3(5.0f));
+        model = glm::rotate(model, (float)glm::radians(90.0), glm::vec3(0, 0 , 1));
+        model = glm::rotate(model, (float)glm::radians(90.0), glm::vec3(0, 1 , 0));
+        modelShader.setMat4("model", model);
+        ground1.Draw(modelShader);
+
+        model = glm::mat4(1.0f);
+        model = glm::translate(model,programState->groundPosition4);
+        model = glm::scale(model, glm::vec3(5.0f));
+        model = glm::rotate(model, (float)glm::radians(90.0), glm::vec3(0, 0 , 1));
+        model = glm::rotate(model, (float)glm::radians(90.0), glm::vec3(0, 1 , 0));
+        modelShader.setMat4("model", model);
+        ground1.Draw(modelShader);
+
+        model = glm::mat4(1.0f);
+        model = glm::translate(model,programState->groundPosition5);
+        model = glm::scale(model, glm::vec3(5.0f));
+        model = glm::rotate(model, (float)glm::radians(90.0), glm::vec3(0, 0 , 1));
+        model = glm::rotate(model, (float)glm::radians(90.0), glm::vec3(0, 1 , 0));
+        modelShader.setMat4("model", model);
+        ground1.Draw(modelShader);
+
+        model = glm::mat4(1.0f);
+        model = glm::translate(model,programState->groundPosition6);
+        model = glm::scale(model, glm::vec3(5.0f));
+        model = glm::rotate(model, (float)glm::radians(90.0), glm::vec3(0, 0 , 1));
+        model = glm::rotate(model, (float)glm::radians(90.0), glm::vec3(0, 1 , 0));
+        modelShader.setMat4("model", model);
+        ground1.Draw(modelShader);
+
+        model = glm::mat4(1.0f);
+        model = glm::translate(model,programState->lightpPosition1);
+        model = glm::scale(model, glm::vec3(0.005f));
+        model = glm::rotate(model, (float)glm::radians(90.0), glm::vec3(1, 0 , 0));
+        model = glm::rotate(model, (float)glm::radians(-180.0), glm::vec3(0, 1 , 0));
+        modelShader.setMat4("model", model);
+        lightp.Draw(modelShader);
+
+        model = glm::mat4(1.0f);
+        model = glm::translate(model,programState->lightpPosition2);
+        model = glm::scale(model, glm::vec3(0.005f));
+        model = glm::rotate(model, (float)glm::radians(90.0), glm::vec3(1, 0 , 0));
+        model = glm::rotate(model, (float)glm::radians(-180.0), glm::vec3(0, 1 , 0));
+        modelShader.setMat4("model", model);
+        lightp.Draw(modelShader);
+
 
         //street light - light
         lightShader.use();
@@ -425,6 +647,22 @@ int main() {
         model = glm::scale(model, glm::vec3(2.3f));
         blendShader.setMat4("model", model);
         glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        glDepthFunc(GL_LEQUAL);
+        skyboxShader.use();
+        view = glm::mat4(glm::mat3(programState->camera.GetViewMatrix()));
+        skyboxShader.setMat4("view", view);
+        skyboxShader.setMat4("projection", projection);
+
+        glBindVertexArray(skyboxVAO);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        glBindVertexArray(0);
+        glDepthFunc(GL_LESS);
+
+
+        //glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 
 
@@ -526,7 +764,6 @@ void DrawImGui(ProgramState *programState) {
         ImGui::Begin("Hello window");
         ImGui::Text("Hello text");
         ImGui::SliderFloat("Float slider", &f, 0.0, 1.0);
-        ImGui::ColorEdit3("Background color", (float *) &programState->clearColor);
         ImGui::DragFloat3("Backpack position", (float*)&programState->deadpoolPosition);
         //ImGui::DragFloat("Backpack scale", &programState->backpackScale, 0.05, 0.1, 4.0);
 
@@ -665,6 +902,36 @@ unsigned int loadTexture(char const * path)
         std::cout << "Texture failed to load at path: " << path << std::endl;
         stbi_image_free(data);
     }
+
+    return textureID;
+}
+
+unsigned int loadCubemap(vector<std::string> faces)
+{
+    unsigned int textureID;
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+
+    int width, height, nrChannels;
+    for (unsigned int i = 0; i < faces.size(); i++)
+    {
+        unsigned char *data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
+        if (data)
+        {
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+            stbi_image_free(data);
+        }
+        else
+        {
+            std::cout << "Cubemap texture failed to load at path: " << faces[i] << std::endl;
+            stbi_image_free(data);
+        }
+    }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
     return textureID;
 }
