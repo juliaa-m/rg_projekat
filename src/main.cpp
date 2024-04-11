@@ -56,6 +56,18 @@ struct DirLight{
     glm::vec3 specular;
 };
 
+struct SpotLight{
+    glm::vec3 position;
+    glm::vec3 direction;
+    float cutOff;
+    float outerCutOff;
+
+    glm::vec3 ambient;
+    glm::vec3 diffuse;
+    glm::vec3 specular;
+
+};
+
 struct ProgramState {
     bool ImGuiEnabled = false;
     Camera camera;
@@ -124,7 +136,7 @@ bool bloom = true;
 bool bloomKeyPressed = false;
 bool hdr = true;
 bool hdrKeyPressed = false;
-float exposure = 0.8f;
+float exposure = 0.6f;
 
 ProgramState *programState;
 
@@ -144,7 +156,7 @@ int main() {
 
     // glfw window creation
     // --------------------
-    GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
+    GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Deadpool vs Wolverine", NULL, NULL);
     if (window == NULL) {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
@@ -247,6 +259,15 @@ int main() {
     dirlight.diffuse = glm::vec3(0.3f);
     dirlight.specular = glm::vec3(0.7f);
 
+    //Spotlight light
+    SpotLight spotlight;
+    spotlight.position = programState->camera.Position;
+    spotlight.direction = programState->camera.Front;
+    spotlight.ambient = glm::vec3(0.02f);
+    spotlight.diffuse = glm::vec3(5.5f, 3.7f, 1.3f);
+    spotlight.specular = glm::vec3(0.5f);
+    spotlight.cutOff = glm::cos(glm::radians(12.5f));
+    spotlight.outerCutOff = glm::cos(glm::radians(17.0f));
 
 
     //prison
@@ -494,6 +515,15 @@ int main() {
         modelShader.setVec3("dirlight.diffuse", dirlight.diffuse);
         modelShader.setVec3("dirlight.specular", dirlight.specular);
         modelShader.setBool("blinn", blinn);
+
+        //Spotlight
+        modelShader.setVec3("spotlight.position", programState->camera.Position);
+        modelShader.setVec3("spotlight.direction", programState->camera.Front);
+        modelShader.setVec3("spotlight.ambient", spotlight.ambient);
+        modelShader.setVec3("spotlight.diffuse", spotlight.diffuse);
+
+        modelShader.setFloat("spotlight.cutOff", spotlight.cutOff);
+        modelShader.setFloat("spotlight.outerCutOff", spotlight.outerCutOff);
 
 
         glm::mat4 model = glm::mat4(1.0f);
@@ -890,9 +920,22 @@ void DrawImGui(ProgramState *programState) {
     {
         static float f = 0.0f;
         ImGui::Begin("Hello window");
-        ImGui::Text("Hello text");
-        ImGui::SliderFloat("Float slider", &f, 0.0, 1.0);
-        ImGui::DragFloat3("Backpack position", (float*)&programState->deadpoolPosition);
+        ImGui::Text("Deadpool vs Wolverine");
+
+        ImGui::Bullet();
+        ImGui::Checkbox("HDR (shortcut: H)", &hdr);
+
+        ImGui::Bullet();
+        ImGui::Checkbox("Bloom (shortcut: SPACE)", &bloom);
+
+        ImGui::Spacing();
+        ImGui::Bullet();
+        ImGui::DragFloat("Exposure", &exposure, 0.05f, 0.13f, 2.0f);
+
+        ImGui::Bullet();
+        ImGui::Checkbox("Blinn-Phong (shortcut: B)", &blinn);
+        //ImGui::SliderFloat("Float slider", &f, 0.0, 1.0);
+        //ImGui::DragFloat3("Backpack position", (float*)&programState->deadpoolPosition);
         //ImGui::DragFloat("Backpack scale", &programState->backpackScale, 0.05, 0.1, 4.0);
 
         ImGui::End();

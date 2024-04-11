@@ -47,6 +47,7 @@ in vec3 FragPos;
 uniform DirLight dirlight;
 uniform PointLight pointlight[N_POINT_LIGHTS];
 uniform Material material;
+uniform SpotLight spotlight;
 
 uniform vec3 viewPos;
 uniform bool blinn;
@@ -155,10 +156,14 @@ void main()
         result += CalcPointLight(pointlight[i], normal, FragPos, viewDir);
     }
 
+    result += CalcSpotLight(spotlight, normal, FragPos, viewDir);
+
     float brightness = dot(result, vec3(0.2126, 0.7152, 0.0722));
         if(brightness > 1.0)
             BrightColor = vec4(result, 1.0);
         else
             BrightColor = vec4(0.0, 0.0, 0.0, 1.0);
+
+
     FragColor = vec4(result, 1.0);
 }
