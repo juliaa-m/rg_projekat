@@ -1,5 +1,6 @@
 #version 330 core
-out vec4 FragColor;
+layout (location = 0) out vec4 FragColor;
+layout (location = 1) out vec4 BrightColor;
 
 struct PointLight {
     vec3 position;
@@ -30,6 +31,8 @@ struct SpotLight{
 
 };
 
+#define N_POINT_LIGHTS 3
+
 struct Material {
     sampler2D texture_diffuse1;
     sampler2D texture_specular1;
@@ -42,7 +45,7 @@ in vec3 Normal;
 in vec3 FragPos;
 
 uniform DirLight dirlight;
-uniform PointLight pointLight;
+uniform PointLight pointlight[N_POINT_LIGHTS];
 uniform Material material;
 
 uniform vec3 viewPos;
@@ -147,6 +150,15 @@ void main()
     vec3 normal = normalize(Normal);
     vec3 viewDir = normalize(viewPos - FragPos);
     vec3 result = CalcDirLight(dirlight, normal, viewDir);
-    result += CalcPointLight(pointLight, normal, FragPos, viewDir);
+
+    for(int i = 0; i < N_POINT_LIGHTS; i++){
+        result += CalcPointLight(pointlight[i], normal, FragPos, viewDir);
+    }
+
+    float brightness = dot(result, vec3(0.2126, 0.7152, 0.0722));
+        if(brightness > 1.0)
+            BrightColor = vec4(result, 1.0);
+        else
+            BrightColor = vec4(0.0, 0.0, 0.0, 1.0);
     FragColor = vec4(result, 1.0);
 }
